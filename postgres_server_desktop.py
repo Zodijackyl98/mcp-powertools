@@ -1,5 +1,5 @@
 """
-PostgreSQL MCP Server - RASPBERRY PI DATABASE (localhost)
+PostgreSQL MCP Server - DESKTOP DATABASE at localhost
 Complete implementation with DDL operations
 """
 
@@ -12,39 +12,35 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, Resource, TextContent
-from dotenv import load_dotenv
-import os
 
-load_dotenv()
+server = Server("postgresql-DESKTOP")
 
-server = Server("postgresql-PI")
-
-# RASPBERRY PI LOCAL DATABASE
+# DESKTOP DATABASE - runs on Windows
 BASE_CONFIG = {
-    "host": os.getenv("POSTGRES_HOST"),
-    "port": os.getenv("POSTGRES_PORT"),
-    "user": os.getenv("POSTGRES_USER"),
-    "password": os.getenv("POSTGRES_PASSWORD"),
+    "host": "localhost",
+    "port": 5432,
+    "user": "mert",
+    "password": "pulsar"
 }
 
-DEFAULT_DATABASE = os.getenv("POSTGRES_DEFAULT_DB")
+DEFAULT_DATABASE = "afterburner"
 MAX_ROWS = 1000
 ALLOWED_SCHEMAS = ["public"]
 READ_ONLY = False
 
 print("="*60)
-print("RASPBERRY PI DATABASE SERVER (localhost)")
+print("DESKTOP DATABASE SERVER (192.168.1.21)")
 print(f"   Default: {DEFAULT_DATABASE}")
 print("="*60)
 
 def get_connection(database: str = None):
-    """Connect to Raspberry Pi's local PostgreSQL"""
+    """Connect to Desktop's local PostgreSQL"""
     config = BASE_CONFIG.copy()
     config["database"] = database or DEFAULT_DATABASE
     return psycopg2.connect(**config)
 
 def execute_query(query: str, database: str = None, params: tuple = None) -> dict:
-    """Execute query on PI database"""
+    """Execute query on DESKTOP database"""
     try:
         conn = get_connection(database)
         cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -52,7 +48,7 @@ def execute_query(query: str, database: str = None, params: tuple = None) -> dic
         if READ_ONLY:
             query_upper = query.strip().upper()
             if any(keyword in query_upper for keyword in ['INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'TRUNCATE']):
-                return {"error": "Write operations disabled", "server": "RASPBERRY PI"}
+                return {"error": "Write operations disabled", "server": "DESKTOP"}
         
         cursor.execute(query, params)
         
@@ -67,7 +63,7 @@ def execute_query(query: str, database: str = None, params: tuple = None) -> dic
                 "row_count": len(rows),
                 "has_more": has_more,
                 "database": database or DEFAULT_DATABASE,
-                "server": "RASPBERRY PI"
+                "server": "DESKTOP"
             }
         else:
             conn.commit()
@@ -75,7 +71,7 @@ def execute_query(query: str, database: str = None, params: tuple = None) -> dic
                 "affected_rows": cursor.rowcount,
                 "message": "Query executed successfully",
                 "database": database or DEFAULT_DATABASE,
-                "server": "RASPBERRY PI"
+                "server": "DESKTOP"
             }
         
         cursor.close()
@@ -86,20 +82,20 @@ def execute_query(query: str, database: str = None, params: tuple = None) -> dic
         if 'conn' in locals():
             conn.rollback()
             conn.close()
-        return {"error": str(e), "server": "RASPBERRY PI"}
+        return {"error": str(e), "server": "DESKTOP"}
 
 
 @server.list_tools()
 async def list_tools() -> list[Tool]:
     return [
         Tool(
-            name="pi_list_databases",
-            description="[RASPBERRY PI] List all databases on Raspberry Pi PostgreSQL",
+            name="desktop_list_databases",
+            description="[DESKTOP] List all databases on Windows Desktop PostgreSQL",
             inputSchema={"type": "object", "properties": {}}
         ),
         Tool(
-            name="pi_create_database",
-            description="[RASPBERRY PI] Create a new database on Raspberry Pi",
+            name="desktop_create_database",
+            description="[DESKTOP] Create a new database on Desktop",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -111,8 +107,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_drop_database",
-            description="[RASPBERRY PI] Drop/delete a database on Raspberry Pi (DANGEROUS - requires confirmation)",
+            name="desktop_drop_database",
+            description="[DESKTOP] Drop/delete a database on Desktop (DANGEROUS - requires confirmation)",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -123,8 +119,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_create_table",
-            description="[RASPBERRY PI] Create a new table with columns, constraints, and foreign keys",
+            name="desktop_create_table",
+            description="[DESKTOP] Create a new table with columns, constraints, and foreign keys",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -168,8 +164,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_drop_table",
-            description="[RASPBERRY PI] Drop/delete a table (DANGEROUS - requires confirmation)",
+            name="desktop_drop_table",
+            description="[DESKTOP] Drop/delete a table (DANGEROUS - requires confirmation)",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -183,8 +179,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_add_column",
-            description="[RASPBERRY PI] Add a new column to an existing table",
+            name="desktop_add_column",
+            description="[DESKTOP] Add a new column to an existing table",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -200,8 +196,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_drop_column",
-            description="[RASPBERRY PI] Remove a column from a table",
+            name="desktop_drop_column",
+            description="[DESKTOP] Remove a column from a table",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -215,8 +211,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_create_index",
-            description="[RASPBERRY PI] Create an index on table column(s)",
+            name="desktop_create_index",
+            description="[DESKTOP] Create an index on table column(s)",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -232,8 +228,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_drop_index",
-            description="[RASPBERRY PI] Drop an index",
+            name="desktop_drop_index",
+            description="[DESKTOP] Drop an index",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -246,8 +242,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_add_foreign_key",
-            description="[RASPBERRY PI] Add a foreign key constraint to existing table",
+            name="desktop_add_foreign_key",
+            description="[DESKTOP] Add a foreign key constraint to existing table",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -265,8 +261,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_execute_query",
-            description="[RASPBERRY PI] Execute SQL query on Pi database (aft_app by default)",
+            name="desktop_execute_query",
+            description="[DESKTOP] Execute SQL query on Desktop database (afterburner by default)",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -277,8 +273,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_list_tables",
-            description="[RASPBERRY PI] List tables in Pi database",
+            name="desktop_list_tables",
+            description="[DESKTOP] List tables in Desktop database",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -288,8 +284,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_describe_table",
-            description="[RASPBERRY PI] Get table structure on Pi database",
+            name="desktop_describe_table",
+            description="[DESKTOP] Get table structure on Desktop database",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -301,8 +297,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_table_statistics",
-            description="[RASPBERRY PI] Get table statistics on Pi database",
+            name="desktop_table_statistics",
+            description="[DESKTOP] Get table statistics on Desktop database",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -314,8 +310,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_column_statistics",
-            description="[RASPBERRY PI] Get column statistics on Pi database",
+            name="desktop_column_statistics",
+            description="[DESKTOP] Get column statistics on Desktop database",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -328,8 +324,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_get_indexes",
-            description="[RASPBERRY PI] List indexes on Pi database",
+            name="desktop_get_indexes",
+            description="[DESKTOP] List indexes on Desktop database",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -341,8 +337,8 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
-            name="pi_database_summary",
-            description="[RASPBERRY PI] Get database summary on Pi",
+            name="desktop_database_summary",
+            description="[DESKTOP] Get database summary on Desktop",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -356,7 +352,7 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     
-    tool_name = name.replace("pi_", "")
+    tool_name = name.replace("desktop_", "")
     
     if tool_name == "create_database":
         db_name = arguments["database_name"]
@@ -364,7 +360,6 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         encoding = arguments.get("encoding", "UTF8")
         
         try:
-            # Connect to postgres database with autocommit for CREATE DATABASE
             conn = get_connection("postgres")
             conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
             cursor = conn.cursor()
@@ -378,17 +373,17 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             cursor.close()
             conn.close()
             
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Database '{db_name}' created successfully\nOwner: {owner or 'default'}\nEncoding: {encoding}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Database '{db_name}' created successfully\nOwner: {owner or 'default'}\nEncoding: {encoding}")]
         
         except Exception as e:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error creating database: {str(e)}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error creating database: {str(e)}")]
     
     elif tool_name == "drop_database":
         db_name = arguments["database_name"]
         confirm = arguments.get("confirm", False)
         
         if not confirm:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Database deletion not confirmed. Set 'confirm' to true to proceed.")]
+            return [TextContent(type="text", text=f"[DESKTOP] Database deletion not confirmed. Set 'confirm' to true to proceed.")]
         
         try:
             conn = get_connection("postgres")
@@ -399,10 +394,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             cursor.close()
             conn.close()
             
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Database '{db_name}' dropped successfully")]
+            return [TextContent(type="text", text=f"[DESKTOP] Database '{db_name}' dropped successfully")]
         
         except Exception as e:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error dropping database: {str(e)}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error dropping database: {str(e)}")]
     
     elif tool_name == "create_table":
         table_name = arguments["table_name"]
@@ -440,9 +435,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error creating table: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error creating table: {result['error']}")]
         
-        output = f"[RASPBERRY PI] Table '{schema}.{table_name}' created successfully\n\n"
+        output = f"[DESKTOP] Table '{schema}.{table_name}' created successfully\n\n"
         output += f"Columns: {len(columns)}\n"
         output += f"Foreign Keys: {len(foreign_keys)}\n\n"
         output += f"SQL: {query}"
@@ -457,7 +452,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         cascade = arguments.get("cascade", False)
         
         if not confirm:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Table deletion not confirmed. Set 'confirm' to true to proceed.")]
+            return [TextContent(type="text", text=f"[DESKTOP] Table deletion not confirmed. Set 'confirm' to true to proceed.")]
         
         query = f'DROP TABLE "{schema}"."{table_name}"'
         if cascade:
@@ -466,9 +461,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error dropping table: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error dropping table: {result['error']}")]
         
-        return [TextContent(type="text", text=f"[RASPBERRY PI] Table '{schema}.{table_name}' dropped successfully")]
+        return [TextContent(type="text", text=f"[DESKTOP] Table '{schema}.{table_name}' dropped successfully")]
     
     elif tool_name == "add_column":
         table_name = arguments["table_name"]
@@ -489,9 +484,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error adding column: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error adding column: {result['error']}")]
         
-        return [TextContent(type="text", text=f"[RASPBERRY PI] Column '{column_name}' added to '{schema}.{table_name}'")]
+        return [TextContent(type="text", text=f"[DESKTOP] Column '{column_name}' added to '{schema}.{table_name}'")]
     
     elif tool_name == "drop_column":
         table_name = arguments["table_name"]
@@ -501,15 +496,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         schema = arguments.get("schema", "public")
         
         if not confirm:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Column deletion not confirmed. Set 'confirm' to true to proceed.")]
+            return [TextContent(type="text", text=f"[DESKTOP] Column deletion not confirmed. Set 'confirm' to true to proceed.")]
         
         query = f'ALTER TABLE "{schema}"."{table_name}" DROP COLUMN "{column_name}"'
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error dropping column: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error dropping column: {result['error']}")]
         
-        return [TextContent(type="text", text=f"[RASPBERRY PI] Column '{column_name}' dropped from '{schema}.{table_name}'")]
+        return [TextContent(type="text", text=f"[DESKTOP] Column '{column_name}' dropped from '{schema}.{table_name}'")]
     
     elif tool_name == "create_index":
         table_name = arguments["table_name"]
@@ -527,9 +522,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error creating index: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error creating index: {result['error']}")]
         
-        return [TextContent(type="text", text=f"[RASPBERRY PI] Index '{index_name}' created on {schema}.{table_name}({', '.join(columns)})")]
+        return [TextContent(type="text", text=f"[DESKTOP] Index '{index_name}' created on {schema}.{table_name}({', '.join(columns)})")]
     
     elif tool_name == "drop_index":
         index_name = arguments["index_name"]
@@ -538,15 +533,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         schema = arguments.get("schema", "public")
         
         if not confirm:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Index deletion not confirmed. Set 'confirm' to true to proceed.")]
+            return [TextContent(type="text", text=f"[DESKTOP] Index deletion not confirmed. Set 'confirm' to true to proceed.")]
         
         query = f'DROP INDEX "{schema}"."{index_name}"'
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error dropping index: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error dropping index: {result['error']}")]
         
-        return [TextContent(type="text", text=f"[RASPBERRY PI] Index '{index_name}' dropped successfully")]
+        return [TextContent(type="text", text=f"[DESKTOP] Index '{index_name}' dropped successfully")]
     
     elif tool_name == "add_foreign_key":
         table_name = arguments["table_name"]
@@ -566,9 +561,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error adding foreign key: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error adding foreign key: {result['error']}")]
         
-        return [TextContent(type="text", text=f"[RASPBERRY PI] Foreign key '{constraint_name}' added to '{schema}.{table_name}'")]
+        return [TextContent(type="text", text=f"[DESKTOP] Foreign key '{constraint_name}' added to '{schema}.{table_name}'")]
     
     elif tool_name == "list_databases":
         query = """
@@ -583,9 +578,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, "postgres")
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error: {result['error']}")]
         
-        output = "[RASPBERRY PI] Available Databases:\n\n"
+        output = "[DESKTOP] Available Databases:\n\n"
         for row in result['rows']:
             default_marker = " <- DEFAULT" if row['database_name'] == DEFAULT_DATABASE else ""
             output += f"* {row['database_name']}{default_marker}\n"
@@ -600,17 +595,17 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error: {result['error']}")]
         
         if "rows" in result:
-            output = f"[RASPBERRY PI] Database: {result['database']}\n"
+            output = f"[DESKTOP] Database: {result['database']}\n"
             output += f"Query returned {result['row_count']} rows"
             if result['has_more']:
                 output += f" (limited to {MAX_ROWS})"
             output += "\n\n"
             output += json.dumps(result['rows'], indent=2, default=str)
         else:
-            output = f"[RASPBERRY PI] Database: {result['database']}\n"
+            output = f"[DESKTOP] Database: {result['database']}\n"
             output += f"{result['message']}\nAffected rows: {result['affected_rows']}"
         
         return [TextContent(type="text", text=output)]
@@ -628,9 +623,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database, (schema,))
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error: {result['error']}")]
         
-        output = f"[RASPBERRY PI] Database: {result['database']}\n"
+        output = f"[DESKTOP] Database: {result['database']}\n"
         output += f"Tables in schema '{schema}':\n\n"
         for row in result['rows']:
             output += f"* {row['table_name']} ({row['table_type']})\n"
@@ -651,9 +646,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database, (table_name, schema))
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error: {result['error']}")]
         
-        output = f"[RASPBERRY PI] Database: {result['database']}\n"
+        output = f"[DESKTOP] Database: {result['database']}\n"
         output += f"Structure of '{schema}.{table_name}':\n\n"
         for row in result['rows']:
             nullable = "NULL" if row['is_nullable'] == 'YES' else "NOT NULL"
@@ -679,16 +674,16 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error: {result['error']}")]
         
         if result['rows']:
             stats = result['rows'][0]
-            output = f"[RASPBERRY PI] Database: {result['database']}\n"
+            output = f"[DESKTOP] Database: {result['database']}\n"
             output += f"Statistics for '{schema}.{table_name}':\n\n"
             output += f"* Row count: {stats['row_count']:,}\n"
             output += f"* Total size: {stats['total_size']}\n"
         else:
-            output = f"[RASPBERRY PI] Could not retrieve statistics"
+            output = f"[DESKTOP] Could not retrieve statistics"
         
         return [TextContent(type="text", text=output)]
     
@@ -708,17 +703,17 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error: {result['error']}")]
         
         if result['rows']:
             stats = result['rows'][0]
-            output = f"[RASPBERRY PI] Database: {result['database']}\n"
+            output = f"[DESKTOP] Database: {result['database']}\n"
             output += f"Statistics for column '{column_name}':\n\n"
             output += f"* Total rows: {stats['total_rows']:,}\n"
             output += f"* Non-null values: {stats['non_null_count']:,}\n"
             output += f"* Distinct values: {stats['distinct_count']:,}\n"
         else:
-            output = f"[RASPBERRY PI] Could not retrieve statistics"
+            output = f"[DESKTOP] Could not retrieve statistics"
         
         return [TextContent(type="text", text=output)]
     
@@ -739,9 +734,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database, (schema, table_name))
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error: {result['error']}")]
         
-        output = f"[RASPBERRY PI] Database: {result['database']}\n"
+        output = f"[DESKTOP] Database: {result['database']}\n"
         output += f"Indexes for '{schema}.{table_name}':\n\n"
         if result['rows']:
             for row in result['rows']:
@@ -764,24 +759,24 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         result = execute_query(query, database)
         
         if "error" in result:
-            return [TextContent(type="text", text=f"[RASPBERRY PI] Error: {result['error']}")]
+            return [TextContent(type="text", text=f"[DESKTOP] Error: {result['error']}")]
         
         if result['rows']:
             summary = result['rows'][0]
-            output = f"[RASPBERRY PI] Database: '{summary['database_name']}'\n\n"
+            output = f"[DESKTOP] Database: '{summary['database_name']}'\n\n"
             output += f"* Total size: {summary['total_size']}\n"
             output += f"* Tables: {summary['table_count']}\n"
         else:
-            output = f"[RASPBERRY PI] Could not retrieve summary"
+            output = f"[DESKTOP] Could not retrieve summary"
         
         return [TextContent(type="text", text=output)]
     
     # Fallback for unimplemented tools
-    return [TextContent(type="text", text=f"[RASPBERRY PI] Tool '{name}' not implemented")]
+    return [TextContent(type="text", text=f"[DESKTOP] Tool '{name}' not implemented")]
 
 
 async def main():
-    print("PostgreSQL MCP Server (Raspberry Pi) started")
+    print("PostgreSQL MCP Server (DESKTOP) started")
     print(f"Host: {BASE_CONFIG['host']}:{BASE_CONFIG['port']}")
     print(f"Default database: {DEFAULT_DATABASE}")
     async with stdio_server() as (read_stream, write_stream):

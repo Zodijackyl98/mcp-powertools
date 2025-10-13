@@ -13,7 +13,7 @@ MCP Toolkit provides production-ready MCP servers that give LLMs the ability to 
 - **File System Management**: Complete file operations with path restrictions
 - **Bash Script Automation**: Create and execute bash scripts
 - **Safety Features**: Confirmation prompts for destructive operations
-- **Tool Prefixing**: Unique tool names prevent confusion between multiple PostgreSQL servers running on different machines
+- **Tool Prefixing**: Unique tool names prevent confusion between multiple PostgreSQL servers running on different machines.`pi_` for Raspberry Pi, `desktop_` for windows desktop installations
 
 ## Available Servers
 
@@ -21,6 +21,9 @@ MCP Toolkit provides production-ready MCP servers that give LLMs the ability to 
 
 Full-featured PostgreSQL database management with support for:
 
+- Multiple server support, one for linux(tested on Raspberry Pi) and one for your deskop(tested on Windows). No matter how you instruct your model that 
+there are sepearate PostgreSQL servers for different machines, it keeps using wrong tools for wrong servers. That's why you have two MCP servers for two of your 
+desired servers, I put prefixes one for 'pi_' and the other for 'desktop_'. You can setup both however you want depending on your .env file. 
 - Database creation/deletion
 - Table creation with columns, constraints, and foreign keys
 - Column management (add/drop columns)
@@ -29,7 +32,6 @@ Full-featured PostgreSQL database management with support for:
 - Statistics and analysis
 - Multi-database connections
 
-**Tool Prefix**: `pi_` for Raspberry Pi, `desktop_` for windows desktop installations
 
 ### Filesystem Server
 
@@ -57,7 +59,7 @@ Container and image management capabilities:
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.8 or higher (tested on 3.12.11)
 - PostgreSQL (for database servers)
 - Docker (for Docker server)
 - SSH access (for remote servers)
@@ -78,7 +80,25 @@ cd mcp-toolkit
 
 2. Configure your servers by creating .env file in the same folder and update it accordingly or  editing the connection parameters in each server file:
 
-For PostgreSQL servers:
+.env Example
+```
+# PostgreSQL Pi Configuration
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=user
+POSTGRES_PASSWORD=user_password
+POSTGRES_DEFAULT_DB=default_database_name
+
+# PosgreSQL Desktop Configuration
+POSTGRES_D_HOST=localhost
+POSTGRES_D_PORT=5432
+POSTGRES_D_USER=user
+POSTGRES_D_PASSWORD=user_password
+POSTGRES_D_DEFAULT_DB=default_database_name
+```
+
+
+For PostgreSQL servers(without using .env):
 ```python
 BASE_CONFIG = {
     "host": "localhost",
@@ -88,7 +108,7 @@ BASE_CONFIG = {
 }
 ```
 
-For Filesystem server:
+For Filesystem server don't forget to change your_usarname with your actual username:
 ```python
 HOME_DIR = Path("/home/your_username")
 ```
@@ -300,5 +320,6 @@ elif tool_name == "tool_name":
 ## Support
 
 For issues, questions, or suggestions:
+- Contact me via contact form (https://solartrace.site). Write mcp-powertools for the subject section.
 - Open an issue on GitHub
 - Check existing documentation
