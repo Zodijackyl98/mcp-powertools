@@ -12,6 +12,7 @@ MCP Toolkit provides production-ready MCP servers that give LLMs the ability to 
 - **Comprehensive Database Operations**: Making complex queries effortlessly
 - **File System Management**: Complete file operations with path restrictions
 - **Bash Script Automation**: Create and execute bash scripts
+- **Django Web Framework operations**: Making migrations, collecting statics, running/stopping server, updating configuration files, list applications and more.
 - **Safety Features**: Confirmation prompts for destructive operations
 - **Tool Prefixing**: Unique tool names prevent confusion between multiple PostgreSQL servers running on different machines.`pi_` for Raspberry Pi, `desktop_` for windows desktop installations
 
@@ -55,6 +56,17 @@ Container and image management capabilities:
 - Container logs and statistics
 - Compose file operations
 
+
+### Django Server
+
+Main Django Web Framework Commands for your website.
+
+- Run/Stop Django development server (detached, in background)
+- Gather all static files (Options for clearing old files and skipping prompts)
+- Read and modify any settings for your setup.
+- Create, apply and see your migration status.
+- Create Admin users, show installed apps, clear Django cache and more.
+
 ## Installation
 
 ### Prerequisites
@@ -95,6 +107,10 @@ POSTGRES_D_PORT=5432
 POSTGRES_D_USER=user
 POSTGRES_D_PASSWORD=user_password
 POSTGRES_D_DEFAULT_DB=default_database_name
+
+# Django
+DJANGO_MAIN=/home/user/path/to/your/Django_project_folder
+DJANGO_PYTHON=/home/user/miniforge3/envs/your_django_environment/bin/python3
 ```
 
 
