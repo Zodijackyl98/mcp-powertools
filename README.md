@@ -13,6 +13,7 @@ MCP Toolkit provides production-ready MCP servers that give LLMs the ability to 
 - **File System Management**: Complete file operations with path restrictions
 - **Bash Script Automation**: Create and execute bash scripts
 - **Django Web Framework operations**: Making migrations, collecting statics, running/stopping server, updating configuration files, list applications and more.
+- **Encode your images to WebP**: Particularly useful if you also use Django Web Framework. Convert your jpg,png,tiff,bmp,ppm,pgm,pnm images into Webp effortlessly. 
 - **Safety Features**: Confirmation prompts for destructive operations
 - **Tool Prefixing**: Unique tool names prevent confusion between multiple PostgreSQL servers running on different machines.`pi_` for Raspberry Pi, `desktop_` for windows desktop installations
 
@@ -67,6 +68,12 @@ Main Django Web Framework Commands for your website.
 - Create, apply and see your migration status.
 - Create Admin users, show installed apps, clear Django cache and more.
 
+### Cwebp Server
+
+Transform various kind of image formats into Webp. 
+- With given image input & output directory in your .env file, cwebp server transforms your images into webp format. 
+- On default it searches jpg and png images in the given directory via 'find' function and transforms each image into webp respectively while keeping their original names. 
+
 ## Installation
 
 ### Prerequisites
@@ -75,6 +82,8 @@ Main Django Web Framework Commands for your website.
 - PostgreSQL (for database servers)
 - Docker (for Docker server)
 - SSH access (for remote servers)
+- Django Package (for Django server)
+- cwebp app (for cwebp server)
 
 ### Install Dependencies
 
@@ -111,6 +120,11 @@ POSTGRES_D_DEFAULT_DB=default_database_name
 # Django
 DJANGO_MAIN=/home/user/path/to/your/Django_project_folder
 DJANGO_PYTHON=/home/user/miniforge3/envs/your_django_environment/bin/python3
+
+#CWEBP
+DEFAULT_IMG_DIR=/home/user/Pictures/inputs/
+DEFAULT_OUTPUT_DIR=/home/user/Pictures/outputs/
+
 ```
 
 
@@ -161,7 +175,7 @@ Example configuration for LM Studio or similar MCP clients, I use miniforge envi
     "postgresql-pi": {
       "command": "ssh",
       "args": [
-        "-p", "5427",
+        "-p", "1234",
         "user@raspberrpi_ip",
         "/home/user/miniforge3/envs/your_mcp_environment/python3",
         "/path/to/postgres_server.py"
@@ -170,7 +184,7 @@ Example configuration for LM Studio or similar MCP clients, I use miniforge envi
     "filesystem": {
       "command": "ssh",
       "args": [
-        "-p", "5427",
+        "-p", "1234",
         "user@raspberrpi_ip",
         "/home/user/miniforge3/envs/your_mcp_environment/python3",
         "/path/to/pi_server.py"
