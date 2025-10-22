@@ -192,7 +192,11 @@ Example configuration for LM Studio or similar MCP clients, I use miniforge envi
         "/home/user/miniforge3/envs/your_mcp_environment/python3",
         "/path/to/pi_server.py"
       ]
-    }
+    },
+    "Local Server": {
+      "type": "stdio",
+      "command": "/home/user/miniforge3/envs/your_mcp_environment/bin/python3",
+      "args": ["/path/to/your/server/mcp_server.py"]    
   }
 }
 ```
