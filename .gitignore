@@ -1,5 +1,8 @@
 # Ignore sensitive files
 .env
+.continue/
+# Ignore specific files
+git_server.py
 
 # Python bytecodes
 __pycache__/

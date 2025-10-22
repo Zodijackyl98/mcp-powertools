@@ -9,6 +9,8 @@ import asyncio
 import os
 import subprocess
 import shutil
+import json
+import signal
 from pathlib import Path
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -30,6 +32,205 @@ def is_safe_path(path: str) -> tuple[bool, Path]:
         return False, full_path
     except Exception:
         return False, None
+
+
+# ============================================
+# PROCESS MONITORING FUNCTIONS
+# ============================================
+
+def parse_top_output() -> list[dict]:
+    """Parse 'top' command output and return process information"""
+    try:
+        # Run top in batch mode for 1 iteration
+        result = subprocess.run(
+            ["top", "-b", "-n", "1"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        processes = []
+        lines = result.stdout.split('\n')
+        
+        # Find the header line
+        header_idx = 0
+        for i, line in enumerate(lines):
+            if 'PID' in line and 'USER' in line:
+                header_idx = i
+                break
+        
+        # Parse process lines
+        for line in lines[header_idx + 1:]:
+            if not line.strip():
+                continue
+            
+            parts = line.split()
+            if len(parts) < 12:
+                continue
+            
+            try:
+                pid = int(parts[0])
+                user = parts[1]
+                cpu = float(parts[8])
+                mem = float(parts[9])
+                command = ' '.join(parts[11:])
+                
+                # Get full path of executable
+                try:
+                    exe_path = os.readlink(f"/proc/{pid}/exe")
+                except:
+                    exe_path = "N/A"
+                
+                # Get process UUID (using inode as unique identifier)
+                try:
+                    stat_info = os.stat(f"/proc/{pid}")
+                    uuid = f"{pid}-{stat_info.st_ino}"
+                except:
+                    uuid = f"{pid}-unknown"
+                
+                processes.append({
+                    "pid": pid,
+                    "user": user,
+                    "cpu_percent": cpu,
+                    "mem_percent": mem,
+                    "command": command,
+                    "executable_path": exe_path,
+                    "uuid": uuid
+                })
+            except (ValueError, IndexError):
+                continue
+        
+        return processes
+    except Exception as e:
+        return [{"error": f"Failed to parse top output: {str(e)}"}]
+
+
+def parse_glances_output() -> dict:
+    """Parse 'glances' command output and return detailed system info"""
+    try:
+        # Run glances in export json mode
+        result = subprocess.run(
+            ["glances", "-w", "--export", "json"],
+            capture_output=True,
+            text=True,
+            timeout=15
+        )
+        
+        if result.returncode != 0:
+            # Fallback: use glances without web mode
+            result = subprocess.run(
+                ["glances", "--export", "json"],
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+        
+        # Try to parse JSON output
+        try:
+            data = json.loads(result.stdout)
+            return data
+        except json.JSONDecodeError:
+            return {"raw_output": result.stdout, "error": "Could not parse JSON"}
+    except FileNotFoundError:
+        return {"error": "glances not installed. Install with: sudo apt install glances"}
+    except Exception as e:
+        return {"error": f"Failed to run glances: {str(e)}"}
+
+
+def get_process_by_name(name: str) -> list[dict]:
+    """Get all processes matching a name pattern"""
+    try:
+        result = subprocess.run(
+            ["pgrep", "-a", name],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        processes = []
+        for line in result.stdout.strip().split('\n'):
+            if not line:
+                continue
+            
+            parts = line.split(None, 1)
+            pid = int(parts[0])
+            command = parts[1] if len(parts) > 1 else "unknown"
+            
+            try:
+                exe_path = os.readlink(f"/proc/{pid}/exe")
+            except:
+                exe_path = "N/A"
+            
+            try:
+                stat_info = os.stat(f"/proc/{pid}")
+                uuid = f"{pid}-{stat_info.st_ino}"
+            except:
+                uuid = f"{pid}-unknown"
+            
+            processes.append({
+                "pid": pid,
+                "command": command,
+                "executable_path": exe_path,
+                "uuid": uuid
+            })
+        
+        return processes
+    except Exception as e:
+        return [{"error": f"Failed to search for process: {str(e)}"}]
+
+
+def get_process_details(pid: int) -> dict:
+    """Get detailed information about a specific process"""
+    try:
+        # Read process info
+        with open(f"/proc/{pid}/stat", 'r') as f:
+            stat_data = f.read().split()
+        
+        with open(f"/proc/{pid}/status", 'r') as f:
+            status_data = f.read()
+        
+        # Get executable path
+        try:
+            exe_path = os.readlink(f"/proc/{pid}/exe")
+        except:
+            exe_path = "N/A"
+        
+        # Get command line
+        try:
+            with open(f"/proc/{pid}/cmdline", 'r') as f:
+                cmdline = f.read().replace('\x00', ' ')
+        except:
+            cmdline = "N/A"
+        
+        # Parse status
+        status_dict = {}
+        for line in status_data.split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                status_dict[key.strip()] = value.strip()
+        
+        # Get UUID
+        try:
+            stat_info = os.stat(f"/proc/{pid}")
+            uuid = f"{pid}-{stat_info.st_ino}"
+        except:
+            uuid = f"{pid}-unknown"
+        
+        return {
+            "pid": pid,
+            "name": status_dict.get('Name', 'N/A'),
+            "state": status_dict.get('State', 'N/A'),
+            "ppid": status_dict.get('PPid', 'N/A'),
+            "vm_rss": status_dict.get('VmRSS', 'N/A'),
+            "vm_size": status_dict.get('VmSize', 'N/A'),
+            "executable_path": exe_path,
+            "command_line": cmdline,
+            "uuid": uuid
+        }
+    except FileNotFoundError:
+        return {"error": f"Process {pid} not found"}
+    except Exception as e:
+        return {"error": f"Failed to get process details: {str(e)}"}
 
 
 @server.list_tools()
@@ -285,6 +486,117 @@ async def list_tools() -> list[Tool]:
                     }
                 },
                 "required": ["path"]
+            }
+        ),
+        # Process Monitoring Tools
+        Tool(
+            name="list_all_processes",
+            description="List all running processes with CPU, memory usage, paths, and UUIDs",
+            inputSchema={
+                "type": "object",
+                "properties": {}
+            }
+        ),
+        Tool(
+            name="get_top_processes",
+            description="Get top N processes by CPU and memory usage",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "description": "Number of top processes to show (default: 10)",
+                        "default": 10
+                    }
+                }
+            }
+        ),
+        Tool(
+            name="find_process_by_name",
+            description="Search for processes by name",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "process_name": {
+                        "type": "string",
+                        "description": "Name or pattern to search for"
+                    }
+                },
+                "required": ["process_name"]
+            }
+        ),
+        Tool(
+            name="get_process_info",
+            description="Get detailed information about a specific process",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "pid": {
+                        "type": "integer",
+                        "description": "Process ID"
+                    }
+                },
+                "required": ["pid"]
+            }
+        ),
+        Tool(
+            name="get_system_overview",
+            description="Get system overview using glances (if available)",
+            inputSchema={
+                "type": "object",
+                "properties": {}
+            }
+        ),
+        Tool(
+            name="terminate_process",
+            description="Terminate a process by PID",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "pid": {
+                        "type": "integer",
+                        "description": "Process ID to terminate"
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "description": "Force kill (SIGKILL) instead of graceful (SIGTERM)",
+                        "default": False
+                    }
+                },
+                "required": ["pid"]
+            }
+        ),
+        Tool(
+            name="terminate_process_by_name",
+            description="Terminate all processes matching a name",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "process_name": {
+                        "type": "string",
+                        "description": "Name pattern to match"
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "description": "Force kill (SIGKILL) instead of graceful (SIGTERM)",
+                        "default": False
+                    }
+                },
+                "required": ["process_name"]
+            }
+        ),
+        Tool(
+            name="get_process_tree",
+            description="Get process tree starting from a parent PID",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "parent_pid": {
+                        "type": "integer",
+                        "description": "Parent PID to start from (default: 1)",
+                        "default": 1
+                    }
+                }
             }
         ),
 
@@ -822,6 +1134,198 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 type="text",
                 text=f"Error executing script: {str(e)}"
             )]
+    
+    # Process Monitoring Tools
+    elif name == "list_all_processes":
+        processes = parse_top_output()
+        
+        if not processes:
+            return [TextContent(type="text", text="No processes found")]
+        
+        output = "Running Processes\n"
+        output += "=" * 100 + "\n"
+        output += f"{'PID':<8} {'USER':<10} {'CPU%':<8} {'MEM%':<8} {'Command':<30} {'Path':<30}\n"
+        output += "-" * 100 + "\n"
+        
+        for proc in processes[:50]:  # Limit to first 50
+            if "error" in proc:
+                continue
+            output += f"{proc['pid']:<8} {proc['user']:<10} {proc['cpu_percent']:<8.1f} "
+            output += f"{proc['mem_percent']:<8.1f} {proc['command'][:30]:<30} "
+            output += f"{proc['executable_path'][:30]:<30}\n"
+        
+        output += "\n\nUUID Reference:\n"
+        for proc in processes[:50]:
+            if "error" not in proc:
+                output += f"PID {proc['pid']}: UUID {proc['uuid']}\n"
+        
+        return [TextContent(type="text", text=output)]
+    
+    elif name == "get_top_processes":
+        limit = arguments.get("limit", 10)
+        processes = parse_top_output()
+        
+        if not processes or "error" in processes[0]:
+            return [TextContent(type="text", text="Failed to get process list")]
+        
+        # Sort by memory usage
+        sorted_procs = sorted(processes, key=lambda x: x['mem_percent'], reverse=True)[:limit]
+        
+        output = f"Top {limit} Processes by Memory Usage\n"
+        output += "=" * 100 + "\n"
+        output += f"{'PID':<8} {'USER':<10} {'CPU%':<8} {'MEM%':<8} {'Command':<30} {'UUID':<20}\n"
+        output += "-" * 100 + "\n"
+        
+        for proc in sorted_procs:
+            output += f"{proc['pid']:<8} {proc['user']:<10} {proc['cpu_percent']:<8.1f} "
+            output += f"{proc['mem_percent']:<8.1f} {proc['command'][:30]:<30} {proc['uuid']:<20}\n"
+        
+        return [TextContent(type="text", text=output)]
+    
+    elif name == "find_process_by_name":
+        process_name = arguments["process_name"]
+        processes = get_process_by_name(process_name)
+        
+        if not processes or "error" in processes[0]:
+            return [TextContent(type="text", text=f"No processes found matching '{process_name}'")]
+        
+        output = f"Processes matching '{process_name}'\n"
+        output += "=" * 80 + "\n"
+        output += f"{'PID':<8} {'Command':<40} {'Path':<20}\n"
+        output += "-" * 80 + "\n"
+        
+        for proc in processes:
+            if "error" not in proc:
+                output += f"{proc['pid']:<8} {proc['command'][:40]:<40} "
+                output += f"{proc['executable_path'][:20]:<20}\n"
+                output += f"  UUID: {proc['uuid']}\n"
+        
+        return [TextContent(type="text", text=output)]
+    
+    elif name == "get_process_info":
+        pid = arguments["pid"]
+        details = get_process_details(pid)
+        
+        if "error" in details:
+            return [TextContent(type="text", text=details["error"])]
+        
+        output = f"Process Details (PID: {pid})\n"
+        output += "=" * 60 + "\n"
+        output += f"Name: {details['name']}\n"
+        output += f"State: {details['state']}\n"
+        output += f"Parent PID: {details['ppid']}\n"
+        output += f"Memory (RSS): {details['vm_rss']}\n"
+        output += f"Memory (Total): {details['vm_size']}\n"
+        output += f"Executable Path: {details['executable_path']}\n"
+        output += f"Command Line: {details['command_line']}\n"
+        output += f"UUID: {details['uuid']}\n"
+        
+        return [TextContent(type="text", text=output)]
+    
+    elif name == "get_system_overview":
+        glances_data = parse_glances_output()
+        
+        if "error" in glances_data:
+            return [TextContent(type="text", text=f"Glances Error: {glances_data['error']}")]
+        
+        output = "System Overview (Glances)\n"
+        output += "=" * 60 + "\n"
+        
+        # Try to extract key metrics
+        if "cpu" in glances_data:
+            output += f"CPU: {glances_data['cpu']}\n"
+        
+        if "mem" in glances_data:
+            output += f"Memory: {glances_data['mem']}\n"
+        
+        if "swap" in glances_data:
+            output += f"Swap: {glances_data['swap']}\n"
+        
+        if "fs" in glances_data:
+            output += f"\nFile Systems: {len(glances_data['fs'])} mounted\n"
+        
+        if "processlist" in glances_data:
+            output += f"Total Processes: {len(glances_data['processlist'])}\n"
+        
+        output += f"\nRaw data keys: {list(glances_data.keys())}\n"
+        
+        return [TextContent(type="text", text=output)]
+    
+    elif name == "terminate_process":
+        pid = arguments["pid"]
+        force = arguments.get("force", False)
+        
+        try:
+            # Verify process exists
+            details = get_process_details(pid)
+            if "error" in details:
+                return [TextContent(type="text", text=f"Error: Process {pid} not found")]
+            
+            signal_type = signal.SIGKILL if force else signal.SIGTERM
+            signal_name = "SIGKILL (force)" if force else "SIGTERM"
+            
+            os.kill(pid, signal_type)
+            
+            return [TextContent(type="text", text=f"Successfully sent {signal_name} to process {pid} ({details['name']})")]
+        except PermissionError:
+            return [TextContent(type="text", text=f"Error: Permission denied. You may need sudo to terminate this process.")]
+        except ProcessLookupError:
+            return [TextContent(type="text", text=f"Error: Process {pid} not found or already terminated")]
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error terminating process: {str(e)}")]
+    
+    elif name == "terminate_process_by_name":
+        process_name = arguments["process_name"]
+        force = arguments.get("force", False)
+        processes = get_process_by_name(process_name)
+        
+        if not processes or "error" in processes[0]:
+            return [TextContent(type="text", text=f"No processes found matching '{process_name}'")]
+        
+        terminated = []
+        failed = []
+        
+        for proc in processes:
+            if "error" in proc:
+                continue
+            
+            try:
+                signal_type = signal.SIGKILL if force else signal.SIGTERM
+                os.kill(proc['pid'], signal_type)
+                terminated.append(proc['pid'])
+            except Exception as e:
+                failed.append((proc['pid'], str(e)))
+        
+        output = f"Terminated {len(terminated)} process(es) matching '{process_name}'\n"
+        if terminated:
+            output += f"Terminated PIDs: {', '.join(map(str, terminated))}\n"
+        if failed:
+            output += f"Failed to terminate: {failed}\n"
+        
+        return [TextContent(type="text", text=output)]
+    
+    elif name == "get_process_tree":
+        parent_pid = arguments.get("parent_pid", 1)
+        
+        try:
+            result = subprocess.run(
+                ["pstree", "-p", str(parent_pid)],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                return [TextContent(type="text", text=f"Process Tree (starting from PID {parent_pid})\n" + result.stdout)]
+            else:
+                return [TextContent(type="text", text=f"pstree not available or PID {parent_pid} not found")]
+        except FileNotFoundError:
+            return [TextContent(type="text", text="pstree command not found. Install with: sudo apt install psmisc")]
+        except Exception as e:
+            return [TextContent(type="text", text=f"Error getting process tree: {str(e)}")]
+
+    else:
+        return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
 
 async def main():
