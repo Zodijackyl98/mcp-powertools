@@ -19,6 +19,8 @@ MCP Toolkit provides production-ready MCP servers that give LLMs the ability to 
 
 ## Available Servers
 
+I mostly try to design Low-Level MCP servers which are more close to what softwares actually see in format but in the future you might also see some High-Level MCP servers via FastMCP as well. 
+
 ### PostgreSQL Server
 
 Full-featured PostgreSQL database management with support for:
@@ -46,6 +48,7 @@ Complete file system operations for Raspberry Pi or Linux systems:
 - Bash script creation and execution
 - System information monitoring
 - Network information
+- Ability to View, track and kill programs on your system 
 
 ### Docker Server
 
@@ -345,7 +348,7 @@ elif tool_name == "tool_name":
 
 - Built on the Model Context Protocol by Anthropic
 - Inspired by the need for safe, practical LLM-system integration
-- I could not recommend more using [osmosis-ai](https://huggingface.co/osmosis-ai/osmosis-mcp-4b) which is very light but very powerful LLM tuned for MCPs. 
+- I could not recommend more using [osmosis-ai](https://huggingface.co/osmosis-ai/osmosis-mcp-4b) which is very light but very powerful LLM tuned for MCPs. I also tried IBM's new model [ibm/granite-4-h-tiny](https://huggingface.co/ibm-granite/granite-4.0-h-tiny). It's not a model with reasoning capability but gets the job done swiftly if you give your instructions very straight forward. I would not recommend IBM's model for your SQL database queries, you need to be really specific otherwise it does not understand at all.
 
 ## Support
 
