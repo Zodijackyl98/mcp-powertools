@@ -3,7 +3,7 @@
 .continue/
 # Ignore specific files
 git_server.py
-
+pi_server_sdk.py
 # Python bytecodes
 __pycache__/
 *.pyc

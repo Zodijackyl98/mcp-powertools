@@ -355,7 +355,7 @@ async def call_tool(name: str, arguments: dict):
                 text=f"[DJANGO] Server already running (PID: {existing_pid})\nUse django_stop_server to stop it first."
             )]
         
-        args = ["runserver", f"{host}:{port}"]
+        args = ["runserver", f"{host}:{port}"] #Python env is handled by run_django_command
         if noreload:
             args.append("--noreload")
         

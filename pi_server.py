@@ -2,7 +2,7 @@
 Raspberry Pi MCP Server
 Install this on your Raspberry Pi
 Provides file operations and system commands
-Full access to /home/mert
+Full access to user given directories
 """
 
 import asyncio
@@ -613,7 +613,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -637,7 +637,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -663,7 +663,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -687,7 +687,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -726,7 +726,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -748,7 +748,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -776,12 +776,12 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
 
         try:
             if full_path.is_dir():
-                # Prevent deleting /home/mert itself
+                # Prevent deleting HOME_DIR itself
                 if full_path == HOME_DIR:
                     return [TextContent(
                         type="text",
@@ -814,7 +814,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe_src or not is_safe_dst:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -839,7 +839,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe_src or not is_safe_dst:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -865,7 +865,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -894,7 +894,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -1044,7 +1044,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
@@ -1085,7 +1085,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not is_safe:
             return [TextContent(
                 type="text",
-                text=f"Error: Access denied. Only paths under /home/mert are allowed."
+                text=f"Error: Access denied. Only paths under {HOME_DIR} are allowed."
             )]
         
         try:
